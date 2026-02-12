@@ -3,6 +3,8 @@ const app = express();
 const userRouter = require("./routes/user");
 const PORT = 3000;
 
+app.use(express.static("public"));
+
 app.get("/", (req, res) => {
     サーバー側のログに表示
     console.log("Hello express");
