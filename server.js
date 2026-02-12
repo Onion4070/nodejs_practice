@@ -3,14 +3,18 @@ const app = express();
 const userRouter = require("./routes/user");
 const PORT = 3000;
 
-app.use(express.static("public"));
+// 静的レンダリング
+// app.use(express.static("public"));
+
+// 動的レンダリング
+app.set("view engine", "ejs");
 
 app.get("/", (req, res) => {
-    サーバー側のログに表示
-    console.log("Hello express");
+    // サーバー側のログに表示
+    // console.log("Hello express");
 
-    クライアント側に表示
-    res.send("<h1>こんにちは</h1>");
+    // クライアント側に表示
+    // res.send("<h1>こんにちは</h1>");
 
     // ステータスコードを表示
     // res.sendStatus(404);
@@ -20,6 +24,9 @@ app.get("/", (req, res) => {
 
     // jsonでも返せる
     // res.status(500).json({msg: "エラーです"});
+
+    // 本来ならデータ部分はデータベースなどから取得
+    res.render("index", {text: "NodejsとExpress"});
 });
 
 // ルーティング
