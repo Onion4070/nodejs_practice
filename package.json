@@ -20,8 +20,12 @@
   },
   "homepage": "https://github.com/Onion4070/nodejs_practice#readme",
   "dependencies": {
+    "@roamhq/wrtc": "^0.9.1",
+    "dgram": "^1.0.1",
     "ejs": "^4.0.1",
     "express": "^5.2.1",
-    "nodemon": "^3.1.11"
+    "nodemon": "^3.1.11",
+    "socket.io": "^4.8.3",
+    "werift": "^0.22.4"
   }
 }

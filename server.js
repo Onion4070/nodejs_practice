@@ -1,35 +1,58 @@
-const express = require("express");
+const express = require('express');
+const http = require('http');
+const dgram = require('dgram');
+const { Server } = require('socket.io');
+const { RTCPeerConnection, MediaStreamTrack, RTCRtpCodecParameters } = require('werift');
+
 const app = express();
-const userRouter = require("./routes/user");
-const PORT = 3000;
+const server = http.createServer(app);
+const io = new Server(server);
 
-// 静的レンダリング
-// app.use(express.static("public"));
+app.use(express.static('public'));
 
-// 動的レンダリング
-app.set("view engine", "ejs");
+// 音声トラックを作成
+const audioTrack = new MediaStreamTrack({ kind: 'audio' });
 
-app.get("/", (req, res) => {
-    // サーバー側のログに表示
-    // console.log("Hello express");
+// UDPサーバー設定 (ffmpegからのパケットを受け取る)
+const udpServer = dgram.createSocket('udp4');
+udpServer.on('message', (msg) => {
+    // 受け取ったRTPパケットをWebRTCトラックに直接流し込む
+    audioTrack.writeRtp(msg);
+});
+udpServer.bind(5000);
 
-    // クライアント側に表示
-    // res.send("<h1>こんにちは</h1>");
+io.on('connection', async (socket) => {
+    console.log('Client connected');
 
-    // ステータスコードを表示
-    // res.sendStatus(404);
+    // 接続設定の修正
+    const pc = new RTCPeerConnection({
+        codecs: {
+            audio: [
+                new RTCRtpCodecParameters({
+                    mimeType: "audio/opus",
+                    clockRate: 48000,
+                    channels: 2,
+                    payloadType: 96 // デフォルト値として指定
+                })
+            ]
+        }
+    });
 
-    // ステータスのメッセージをデフォルトから変更
-    // res.status(404).send("エラーです");
+    // トラックを追加
+    pc.addTrack(audioTrack);
 
-    // jsonでも返せる
-    // res.status(500).json({msg: "エラーです"});
+    socket.on('offer', async (sdp) => {
+        await pc.setRemoteDescription(sdp);
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        socket.emit('answer', pc.localDescription);
+    });
 
-    // 本来ならデータ部分はデータベースなどから取得
-    res.render("index", {text: "NodejsとExpress"});
+    socket.on('disconnect', () => {
+        pc.close().catch(console.error);
+    });
 });
 
-// ルーティング
-app.use("/user", userRouter);
-
-app.listen(PORT, () => console.log("サーバーが起動しました"));
+server.listen(3000, () => {
+    console.log('Server: http://localhost:3000');
+});
