@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html>
 <body>
   <button id="start">音声を聴く</button>
@@ -22,6 +22,33 @@
     };
 
     socket.on('answer', (answer) => pc.setRemoteDescription(answer));
+
+    //平均再生バッファ遅延測定用
+    setInterval(async () => {
+      const stats = await pc.getStats();
+
+      stats.forEach(report => {
+        if (report.type === "inbound-rtp" && report.kind === "audio") {
+
+          console.log("------------------------------",);
+          console.log("jitter:", report.jitter);
+          console.log("packetsLost:", report.packetsLost);
+          console.log("------------------------------",);
+          console.log("jitterBufferDelay:", report.jitterBufferDelay);
+          console.log("jitterBufferEmittedCount:", report.jitterBufferEmittedCount);
+          console.log("------------------------------",);
+
+          if (report.jitterBufferEmittedCount > 0) {
+            const avgDelay =
+              report.jitterBufferDelay /
+              report.jitterBufferEmittedCount;
+
+            console.log("Avg playout delay (sec):", avgDelay);
+          }
+        }
+      });
+
+    }, 1000);
   </script>
 </body>
 </html>
