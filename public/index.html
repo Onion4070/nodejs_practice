@@ -1,12 +1,54 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-    <link rel="stylesheet" href="style.css">
-</head>
+﻿<!DOCTYPE html>
+<html>
 <body>
-    <h1>こんにちは！</h1>
+  <button id="start">音声を聴く</button>
+  <audio id="audio" autoplay></audio>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    const pc = new RTCPeerConnection();
+
+    document.getElementById('start').onclick = async () => {
+      pc.ontrack = (e) => {
+        document.getElementById('audio').srcObject = e.streams[0];
+      };
+
+      // 受信専用の設定
+      pc.addTransceiver('audio', { direction: 'recvonly' });
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      socket.emit('offer', offer);
+    };
+
+    socket.on('answer', (answer) => pc.setRemoteDescription(answer));
+
+    //平均再生バッファ遅延測定用
+    setInterval(async () => {
+      const stats = await pc.getStats();
+
+      stats.forEach(report => {
+        if (report.type === "inbound-rtp" && report.kind === "audio") {
+
+          console.log("------------------------------",);
+          console.log("jitter:", report.jitter);
+          console.log("packetsLost:", report.packetsLost);
+          console.log("------------------------------",);
+          console.log("jitterBufferDelay:", report.jitterBufferDelay);
+          console.log("jitterBufferEmittedCount:", report.jitterBufferEmittedCount);
+          console.log("------------------------------",);
+
+          if (report.jitterBufferEmittedCount > 0) {
+            const avgDelay =
+              report.jitterBufferDelay /
+              report.jitterBufferEmittedCount;
+
+            console.log("Avg playout delay (sec):", avgDelay);
+          }
+        }
+      });
+
+    }, 1000);
+  </script>
 </body>
 </html>
